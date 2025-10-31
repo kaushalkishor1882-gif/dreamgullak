@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import GoBackButton from "../components/GoBackButton"; // ✅ Import GoBackButton
 
 export default function AddMoneyPage() {
   const [amount, setAmount] = useState("");
@@ -71,8 +72,8 @@ export default function AddMoneyPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-purple-50 p-6">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md text-center">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
         <h1 className="text-2xl font-bold text-purple-700 mb-4">Add Money</h1>
 
         {!showMethods ? (
@@ -83,14 +84,19 @@ export default function AddMoneyPage() {
               placeholder="Enter amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-black-500"
             />
             <button
               onClick={handleContinue}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg w-full"
+              className="bg-purple-600 hover:bg-purple-700 text-white w-full py-2 rounded-lg transition"
             >
               Continue →
             </button>
+
+            {/* ✅ Go Back Button (always visible, goes to /home ) */}
+            <div className="flex justify-center mt-4">
+              <GoBackButton />
+            </div>
           </>
         ) : (
           <>
@@ -101,31 +107,33 @@ export default function AddMoneyPage() {
               <button
                 onClick={() => handlePayment("paytm")}
                 disabled={loading}
-                className="flex items-center justify-center gap-2 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
+                className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
               >
                 🟦 Pay with Paytm
               </button>
               <button
                 onClick={() => handlePayment("gpay")}
                 disabled={loading}
-                className="flex items-center justify-center gap-2 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600"
+                className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition"
               >
                 🟩 Pay with GPay
               </button>
               <button
                 onClick={() => handlePayment("netbanking")}
                 disabled={loading}
-                className="flex items-center justify-center gap-2 bg-indigo-500 text-white py-2 rounded-lg hover:bg-indigo-600"
+                className="flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg transition"
               >
                 🟪 Pay with Net Banking
               </button>
             </div>
-            <button
-              onClick={() => setShowMethods(false)}
-              className="text-sm text-gray-500 mt-4 underline"
-            >
-              ← Go Back
-            </button>
+            <div className="flex justify-center mt-4">
+             <button
+               onClick={() => setShowMethods(false)}
+               className="text-sm text-gray-600 hover:text-purple-600 transition"
+             >
+               Go Back
+              </button>
+            </div>
           </>
         )}
       </div>
