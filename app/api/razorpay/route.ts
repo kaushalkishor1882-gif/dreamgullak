@@ -1,32 +1,27 @@
-import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
+import { NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { amount } = body;
-
-    console.log("🔑 RAZORPAY_KEY_ID:", process.env.RAZORPAY_KEY_ID);
-    console.log("🔑 RAZORPAY_KEY_SECRET:", process.env.RAZORPAY_KEY_SECRET ? "Loaded ✅" : "Missing ❌");
-
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      throw new Error("Razorpay keys missing in environment variables.");
-    }
+    const { amount } = await req.json();
 
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID!,
       key_secret: process.env.RAZORPAY_KEY_SECRET!,
     });
 
-    const order = await razorpay.orders.create({
-      amount: amount * 100, // amount in paise
+    const options = {
+      amount: amount,
       currency: "INR",
-      receipt: "receipt_" + Math.random().toString(36).substring(7),
-    });
+      receipt: "receipt_order_" + Math.random().toString(36).substring(2, 8),
+    };
+
+    const order = await razorpay.orders.create(options);
+    console.log("✅ Order created:", order);
 
     return NextResponse.json(order);
-  } catch (error: any) {
-    console.error("Razorpay order error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (err: any) {
+    console.error("Error creating Razorpay order:", err);
+    return NextResponse.json({ error: "Order creation failed" }, { status: 500 });
   }
 }
