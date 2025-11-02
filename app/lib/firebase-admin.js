@@ -1,8 +1,11 @@
 import admin from 'firebase-admin';
 
-// Helper function to initialize Firebase only when needed
-function getFirebaseAdmin() {
-  if (!admin.apps.length) {
+export function initializeFirebase() {
+  if (admin.apps.length) {
+    return admin;
+  }
+
+  try {
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON 
       ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
       : {
@@ -14,19 +17,10 @@ function getFirebaseAdmin() {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    // Don't throw during build - just log it
   }
+
   return admin;
 }
-
-export async function POST(req) {
-  try {
-    const admin = getFirebaseAdmin(); // Initialize here, not at top level
-    
-    // Your verification logic here
-    // ...
-    
-  } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
-}
-
