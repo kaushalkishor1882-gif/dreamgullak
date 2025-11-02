@@ -10,7 +10,16 @@ export default function AddMoneyPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Step 1 → Show payment methods after entering amount
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleContinue = () => {
     if (!amount || Number(amount) <= 0) {
       alert("Please enter a valid amount.");
@@ -19,7 +28,6 @@ export default function AddMoneyPage() {
     setShowMethods(true);
   };
 
-  // Step 2 → Process payment based on selected method
   const handlePayment = async (method: string) => {
     setLoading(true);
     try {
@@ -36,6 +44,13 @@ export default function AddMoneyPage() {
         return;
       }
 
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        alert("Razorpay SDK failed to load. Check your internet connection.");
+        setLoading(false);
+        return;
+      }
+
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.amount,
@@ -44,15 +59,33 @@ export default function AddMoneyPage() {
         description: "Add money to your wallet",
         order_id: data.id,
         theme: { color: "#7C3AED" },
-        handler: function (response: any) {
-          alert("Payment successful 🎉 " + response.razorpay_payment_id);
-          router.push("/home"); // ✅ Redirect after success
+        handler: async function (response: any) {
+          try {
+            const verifyRes = await fetch("/api/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                amount: data.amount,
+                userId: "currentUser.uid",
+              }),
+            });
+
+            const j = await verifyRes.json();
+            if (j?.success) {
+              alert(`Money added successfully 🎉 ₹${j.credited}`);
+              router.push("/home");
+            } else {
+              alert("Payment done but verification failed. Contact support.");
+            }
+          } catch (err) {
+            console.error("verify call failed", err);
+            alert("Server verification failed. Try again later.");
+          }
         },
-        modal: {
-          ondismiss: function () {
-            console.log("Payment cancelled");
-          },
-        },
+        modal: { ondismiss: () => console.log("Payment cancelled") },
         method: {
           upi: method === "gpay" || method === "paytm",
           netbanking: method === "netbanking",
@@ -93,7 +126,6 @@ export default function AddMoneyPage() {
               Continue →
             </button>
 
-            {/* ✅ Go Back Button (always visible, goes to /home ) */}
             <div className="flex justify-center mt-4">
               <GoBackButton />
             </div>
@@ -126,12 +158,13 @@ export default function AddMoneyPage() {
                 🟪 Pay with Net Banking
               </button>
             </div>
+
             <div className="flex justify-center mt-4">
-             <button
-               onClick={() => setShowMethods(false)}
-               className="text-sm text-gray-600 hover:text-purple-600 transition"
-             >
-               Go Back
+              <button
+                onClick={() => setShowMethods(false)}
+                className="text-sm text-gray-600 hover:text-purple-600 transition"
+              >
+                Go Back
               </button>
             </div>
           </>

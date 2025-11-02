@@ -1,0 +1,24 @@
+nohup: ignoring input
+
+> dreamgullak@0.1.0 dev
+> next dev & node dev-sequence.js
+
+⚙️ Waiting for Next.js server to start...
+(node:1689) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/kiit/dreamgullak/dev-sequence.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/kiit/dreamgullak/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ⚠ Port 3000 is in use, trying 3001 instead.
+ ⚠ Port 3001 is in use, trying 3002 instead.
+ ⚠ Port 3002 is in use, trying 3003 instead.
+ ⚠ Port 3003 is in use, trying 3004 instead.
+   ▲ Next.js 15.1.6
+   - Local:        http://localhost:3004
+   - Network:      http://10.255.255.254:3004
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.8s
+🚀 Now visiting routes in sequence:
+
+[?25h
