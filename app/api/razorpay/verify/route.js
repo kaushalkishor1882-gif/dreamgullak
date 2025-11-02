@@ -1,32 +1,52 @@
-import admin from 'firebase-admin';
+import crypto from "crypto";
 
-// Helper function to initialize Firebase only when needed
-function getFirebaseAdmin() {
-  if (!admin.apps.length) {
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON 
-      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
-      : {
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        };
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+let admin = null;
+try {
+  // Try importing firebaseAdmin only if credentials exist
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH || process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    admin = await import("../../lib/firebaseAdmin.js");
+  } else {
+    console.warn("⚠️ Firebase credentials missing — skipping Firebase initialization.");
   }
-  return admin;
+} catch (err) {
+  console.warn("⚠️ Firebase import skipped:", err.message);
 }
 
 export async function POST(req) {
   try {
-    const admin = getFirebaseAdmin(); // Initialize here, not at top level
-    
-    // Your verification logic here
-    // ...
-    
+    const body = await req.text();
+    const signature = req.headers.get("x-razorpay-signature");
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(body)
+      .digest("hex");
+
+    if (expectedSignature !== signature) {
+      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 400 });
+    }
+
+    const event = JSON.parse(body);
+    console.log("✅ Razorpay event received:", event.event);
+
+    // Skip Firebase update if admin is not initialized
+    if (!admin) {
+      console.log("⚠️ Firebase not initialized — skipping database update.");
+      return new Response(JSON.stringify({ success: true, message: "Webhook received, Firebase skipped." }));
+    }
+
+    // Example Firebase update if credentials exist
+    const db = admin.db;
+    await db.collection("transactions").add({
+      event: event.event,
+      payload: event.payload,
+      createdAt: new Date(),
+    });
+
+    return new Response(JSON.stringify({ success: true }));
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("❌ Error in webhook verification:", error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
-
