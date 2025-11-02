@@ -1,17 +1,29 @@
 import admin from "firebase-admin";
 
-if (!admin.apps.length) {
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-    : null;
+let adminApp;
 
-  if (!serviceAccount) {
-    throw new Error("No Firebase service account provided (FIREBASE_SERVICE_ACCOUNT)");
+try {
+  // Try to initialize Firebase if credentials are available
+  if (!admin.apps.length) {
+    const serviceAccount =
+      process.env.FIREBASE_SERVICE_ACCOUNT_PATH
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
+        : process.env.FIREBASE_SERVICE_ACCOUNT
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+        : null;
+
+    if (serviceAccount) {
+      adminApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    } else {
+      console.warn("⚠️ No Firebase credentials found — skipping initialization.");
+    }
+  } else {
+    adminApp = admin.app();
   }
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+} catch (err) {
+  console.warn("⚠️ Firebase initialization skipped due to error:", err.message);
 }
 
-export const db = admin.firestore();
+export const adminDb = adminApp ? adminApp.firestore() : null;
