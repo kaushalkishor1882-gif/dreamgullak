@@ -1,15 +1,23 @@
 import crypto from "crypto";
+import admin from "firebase-admin";
 
-let admin = null;
+let firebaseApp = null;
+
 try {
-  // Try importing firebaseAdmin only if credentials exist
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH || process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-    admin = await import("../../lib/firebaseAdmin.js");
+  // Initialize Firebase Admin using JSON from environment variable
+  if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+
+    firebaseApp = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+
+    console.log("🔥 Firebase Admin initialized successfully");
   } else {
-    console.warn("⚠️ Firebase credentials missing — skipping Firebase initialization.");
+    console.warn("⚠️ No Firebase credentials found — skipping initialization.");
   }
 } catch (err) {
-  console.warn("⚠️ Firebase import skipped:", err.message);
+  console.error("❌ Error initializing Firebase Admin:", err.message);
 }
 
 export async function POST(req) {
@@ -30,14 +38,13 @@ export async function POST(req) {
     const event = JSON.parse(body);
     console.log("✅ Razorpay event received:", event.event);
 
-    // Skip Firebase update if admin is not initialized
-    if (!admin) {
+    // Skip Firebase update if not initialized
+    if (!firebaseApp) {
       console.log("⚠️ Firebase not initialized — skipping database update.");
       return new Response(JSON.stringify({ success: true, message: "Webhook received, Firebase skipped." }));
     }
 
-    // Example Firebase update if credentials exist
-    const db = admin.db;
+    const db = admin.firestore();
     await db.collection("transactions").add({
       event: event.event,
       payload: event.payload,

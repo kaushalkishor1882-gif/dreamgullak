@@ -1,29 +1,26 @@
 import admin from "firebase-admin";
 
-let adminApp;
+let app;
 
-try {
-  // Try to initialize Firebase if credentials are available
-  if (!admin.apps.length) {
-    const serviceAccount =
-      process.env.FIREBASE_SERVICE_ACCOUNT_PATH
-        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
-        : process.env.FIREBASE_SERVICE_ACCOUNT
-        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-        : null;
+// Load Firebase Admin SDK only if not initialized
+if (!admin.apps.length) {
+  try {
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+      : null;
 
-    if (serviceAccount) {
-      adminApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+    if (serviceAccountKey) {
+      app = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccountKey),
       });
+      console.log("✅ Firebase initialized using environment variable");
     } else {
-      console.warn("⚠️ No Firebase credentials found — skipping initialization.");
+      console.warn("⚠️ No Firebase service account key found. Firebase disabled.");
     }
-  } else {
-    adminApp = admin.app();
+  } catch (error) {
+    console.error("❌ Error initializing Firebase Admin:", error);
   }
-} catch (err) {
-  console.warn("⚠️ Firebase initialization skipped due to error:", err.message);
 }
 
-export const adminDb = adminApp ? adminApp.firestore() : null;
+export const db = app ? admin.firestore() : null;
+export const auth = app ? admin.auth() : null;
