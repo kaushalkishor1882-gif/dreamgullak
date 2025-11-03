@@ -1,15 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import GoBackButton from "../components/GoBackButton"; // ✅ Import GoBackButton
+import GoBackButton from "../components/GoBackButton";
+import { db, auth } from "../lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { addMoneyToGoal } from "../lib/updateGoal"; // ✅ helper function
 
 export default function AddMoneyPage() {
   const [amount, setAmount] = useState("");
   const [showMethods, setShowMethods] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [selectedGoal, setSelectedGoal] = useState("");
   const router = useRouter();
 
+  // ✅ Fetch all user goals from Firestore
+  useEffect(() => {
+    const fetchGoals = async () => {
+      if (!auth.currentUser) return;
+      const q = query(collection(db, "goals"), where("uid", "==", auth.currentUser.uid));
+      const snapshot = await getDocs(q);
+      setGoals(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    };
+    fetchGoals();
+  }, []);
+
+  // ✅ Load Razorpay SDK
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement("script");
@@ -21,13 +38,12 @@ export default function AddMoneyPage() {
   };
 
   const handleContinue = () => {
-    if (!amount || Number(amount) <= 0) {
-      alert("Please enter a valid amount.");
-      return;
-    }
+    if (!amount || Number(amount) <= 0) return alert("Please enter a valid amount.");
+    if (!selectedGoal) return alert("Please select a goal to fund.");
     setShowMethods(true);
   };
 
+  // ✅ Handle Razorpay payment
   const handlePayment = async (method: string) => {
     setLoading(true);
     try {
@@ -56,7 +72,7 @@ export default function AddMoneyPage() {
         amount: data.amount,
         currency: "INR",
         name: "Dream Gullak",
-        description: "Add money to your wallet",
+        description: "Add money to your goal",
         order_id: data.id,
         theme: { color: "#7C3AED" },
         handler: async function (response: any) {
@@ -69,13 +85,16 @@ export default function AddMoneyPage() {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 amount: data.amount,
-                userId: "currentUser.uid",
+                userId: auth.currentUser?.uid || "guest",
               }),
             });
 
             const j = await verifyRes.json();
+
             if (j?.success) {
-              alert(`Money added successfully 🎉 ₹${j.credited}`);
+              // ✅ Update Firestore Goal Balance
+              await addMoneyToGoal(selectedGoal, Number(amount));
+              alert(`🎉 ₹${amount} added to your goal successfully!`);
               router.push("/home");
             } else {
               alert("Payment done but verification failed. Contact support.");
@@ -111,14 +130,30 @@ export default function AddMoneyPage() {
 
         {!showMethods ? (
           <>
-            <p className="text-gray-600 mb-4">💰 Current Balance: ₹0.00</p>
+            {/* ✅ Show goal selector */}
+            <label className="block font-medium mb-2 text-gray-700">Select Goal</label>
+            <select
+              className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              value={selectedGoal}
+              onChange={(e) => setSelectedGoal(e.target.value)}
+            >
+              <option value="">-- Choose a Goal --</option>
+              {goals.map((goal) => (
+                <option key={goal.id} value={goal.id}>
+                  {goal.goalName} (₹{goal.currentAmount || 0} / ₹{goal.targetAmount})
+                </option>
+              ))}
+            </select>
+
+            <p className="text-gray-600 mb-4">💰 Enter the amount you want to add</p>
             <input
               type="number"
               placeholder="Enter amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-black-500"
+              className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
+
             <button
               onClick={handleContinue}
               className="bg-purple-600 hover:bg-purple-700 text-white w-full py-2 rounded-lg transition"
@@ -132,9 +167,7 @@ export default function AddMoneyPage() {
           </>
         ) : (
           <>
-            <h2 className="text-lg font-semibold text-gray-700 mb-3">
-              Choose Payment Method
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-700 mb-3">Choose Payment Method</h2>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => handlePayment("paytm")}
