@@ -7,8 +7,7 @@ import { useRouter } from "next/navigation";
 export default function CreateGoalPage() {
   const [goalName, setGoalName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
-  const [currentAmount, setCurrentAmount] = useState("");
-  const [targetDate, setTargetDate] = useState(""); // 🆕 new field
+  const [targetDate, setTargetDate] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e: any) => {
@@ -20,13 +19,13 @@ export default function CreateGoalPage() {
         uid: auth.currentUser.uid,
         goalName,
         targetAmount: Number(targetAmount),
-        currentAmount: Number(currentAmount) || 0,
-        targetDate, // save date
+        currentAmount: 0,
+        targetDate,
         createdAt: serverTimestamp(),
       });
 
       alert("🎯 Goal created successfully!");
-      router.push("/wallet"); // redirect to wallet to show the new goal
+      router.push("/wallet");
     } catch (error: any) {
       alert("Error adding goal: " + error.message);
     }
@@ -36,53 +35,63 @@ export default function CreateGoalPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-purple-700 to-indigo-900 text-white">
       <h1 className="text-3xl font-bold mb-6">🎯 Create a Saving Goal</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-4 w-80">
-        <input
-          type="text"
-          placeholder="Goal Name (e.g., New Phone)"
-          className="p-2 rounded text-black"
-          value={goalName}
-          onChange={(e) => setGoalName(e.target.value)}
-          required
-        />
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col space-y-4 w-80 bg-white text-black p-6 rounded-2xl shadow-lg"
+      >
+        {/* Goal Name */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">Goal Name</label>
+          <input
+            type="text"
+            placeholder="e.g., New Phone"
+            className="w-full p-2 rounded border focus:ring-2 focus:ring-purple-600 outline-none"
+            value={goalName}
+            onChange={(e) => setGoalName(e.target.value)}
+            required
+          />
+        </div>
 
-        <input
-          type="number"
-          placeholder="Target Amount"
-          className="p-2 rounded text-black"
-          value={targetAmount}
-          onChange={(e) => setTargetAmount(e.target.value)}
-          required
-        />
+        {/* Target Amount */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">Target Amount (₹)</label>
+          <input
+            type="number"
+            placeholder="e.g., 5000"
+            className="w-full p-2 rounded border focus:ring-2 focus:ring-purple-600 outline-none"
+            value={targetAmount}
+            onChange={(e) => setTargetAmount(e.target.value)}
+            required
+          />
+        </div>
 
-        <input
-          type="number"
-          placeholder="Current Savings"
-          className="p-2 rounded text-black"
-          value={currentAmount}
-          onChange={(e) => setCurrentAmount(e.target.value)}
-        />
+        {/* Target Completion Date */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">
+            🗓️ Target Completion Date
+          </label>
+          <input
+            type="date"
+            className="w-full p-2 rounded border focus:ring-2 focus:ring-purple-600 outline-none cursor-pointer"
+            value={targetDate}
+            onChange={(e) => setTargetDate(e.target.value)}
+            required
+          />
+        </div>
 
-        {/* 🆕 Add target date */}
-        <input
-          type="date"
-          className="p-2 rounded text-black"
-          value={targetDate}
-          onChange={(e) => setTargetDate(e.target.value)}
-          required
-        />
-
+        {/* Save Goal Button */}
         <button
           type="submit"
-          className="bg-pink-500 p-2 rounded text-lg font-semibold hover:bg-pink-600"
+          className="bg-purple-600 text-white p-2 rounded text-lg font-semibold hover:bg-purple-700 transition"
         >
           Save Goal
         </button>
 
+        {/* Back to Home */}
         <button
           type="button"
           onClick={() => router.push("/home")}
-          className="text-sm underline mt-4"
+          className="text-sm underline text-gray-600 mt-2 hover:text-purple-700"
         >
           ← Back to Home
         </button>
@@ -90,4 +99,3 @@ export default function CreateGoalPage() {
     </div>
   );
 }
-
