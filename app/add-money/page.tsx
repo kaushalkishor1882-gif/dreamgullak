@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import GoBackButton from "../components/GoBackButton";
 import { db, auth } from "../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { addMoneyToGoal } from "../lib/updateGoal"; // ✅ helper function
+import { addMoneyToGoal } from "../lib/updateGoal"; 
+import { onAuthStateChanged } from "firebase/auth"; // ✅ Added for auth protection
 
 export default function AddMoneyPage() {
   const [amount, setAmount] = useState("");
@@ -14,6 +15,16 @@ export default function AddMoneyPage() {
   const [goals, setGoals] = useState<any[]>([]);
   const [selectedGoal, setSelectedGoal] = useState("");
   const router = useRouter();
+
+  // ✅ Authentication check: redirect if not logged in
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login");
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
 
   // ✅ Fetch all user goals from Firestore
   useEffect(() => {

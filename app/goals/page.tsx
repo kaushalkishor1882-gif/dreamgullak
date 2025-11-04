@@ -1,14 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { auth } from "@/app/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
+    // Check if user is authenticated
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login"); // Redirect if not logged in
+      } else {
+        setAuthChecked(true); // Continue only if logged in
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    if (!authChecked) return; // Wait until auth check is done
+
     const fetchGoals = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "goals"));
@@ -25,7 +45,7 @@ export default function GoalsPage() {
     };
 
     fetchGoals();
-  }, []);
+  }, [authChecked]);
 
   if (loading) {
     return (

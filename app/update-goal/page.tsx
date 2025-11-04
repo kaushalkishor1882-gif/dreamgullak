@@ -1,17 +1,32 @@
-'use client';
-import { useState } from 'react';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 export default function UpdateGoalPage() {
-  const [goalId, setGoalId] = useState('');
+  const router = useRouter();
+  const [goalId, setGoalId] = useState("");
   const [amount, setAmount] = useState<number>(0);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
 
+  // ✅ Authentication protection
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login"); // Redirect if user not logged in
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  // ✅ Add amount to goal
   const handleAddSavings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const goalRef = doc(db, 'goals', goalId);
+      const goalRef = doc(db, "goals", goalId);
       const goalSnap = await getDoc(goalRef);
 
       if (goalSnap.exists()) {
@@ -23,16 +38,17 @@ export default function UpdateGoalPage() {
           is_completed: newAmount >= goalData.target_amount,
         });
 
-        setMessage('✅ Amount added successfully!');
+        setMessage("✅ Amount added successfully!");
       } else {
-        setMessage('❌ Goal not found.');
+        setMessage("❌ Goal not found.");
       }
     } catch (error) {
-      console.error('Error adding amount:', error);
-      setMessage('⚠️ Something went wrong.');
+      console.error("Error adding amount:", error);
+      setMessage("⚠️ Something went wrong.");
     }
   };
 
+  // ✅ UI
   return (
     <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded-xl shadow-md">
       <h2 className="text-xl font-semibold text-center mb-4">Add Money to Gullak 💰</h2>

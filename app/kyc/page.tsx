@@ -1,11 +1,21 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "../lib/firebase";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged } from "firebase/auth";
 
 export default function KYC() {
   const router = useRouter();
+
+  // Redirect protection — only logged-in users can access this page
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login"); // Redirect if not logged in
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
 
   const [bank, setBank] = useState({
     bankName: "",

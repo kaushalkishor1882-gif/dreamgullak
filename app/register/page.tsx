@@ -8,6 +8,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e: any) => {
@@ -37,6 +38,7 @@ export default function RegisterPage() {
       <h1 className="text-3xl font-bold mb-6">🧑💻 Register for DreamGullak</h1>
 
       <form onSubmit={handleRegister} className="flex flex-col space-y-4 w-80">
+        {/* Email Input */}
         <input
           type="email"
           placeholder="Email"
@@ -46,15 +48,26 @@ export default function RegisterPage() {
           required
         />
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="p-2 border rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        {/* Password Input with Eye Toggle */}
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            className="p-2 border rounded w-full"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-2 text-gray-600 hover:text-gray-800"
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
 
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
@@ -75,4 +88,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-

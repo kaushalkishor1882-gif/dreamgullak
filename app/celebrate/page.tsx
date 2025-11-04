@@ -3,10 +3,23 @@
 import { useEffect, useState } from "react";
 import Confetti from "react-confetti";
 import { useRouter } from "next/navigation";
+import { auth } from "@/app/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function CelebratePage() {
   const [blast, setBlast] = useState(false);
   const router = useRouter();
+
+  // 🔐 Protect the page: redirect if not logged in
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   // 🎇 Auto-start confetti after 500ms
   useEffect(() => {
@@ -14,7 +27,7 @@ export default function CelebratePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 🎆 Stop confetti after a few seconds
+  // 🎆 Stop confetti after 7 seconds
   useEffect(() => {
     if (blast) {
       const timer = setTimeout(() => setBlast(false), 7000);
@@ -23,9 +36,9 @@ export default function CelebratePage() {
   }, [blast]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-yellow-400 to-pink-500 text-white text-center">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-yellow-400 to-pink-500 text-white">
       <h1 className="text-5xl font-bold mb-4 animate-bounce">🎉 Congratulations! 🎉</h1>
-      <p className="text-lg mb-8">
+      <p className="text-lg mb-8 text-center px-4">
         You’ve achieved your savings goal! Time to celebrate your hard work and dedication. 🥳
       </p>
 

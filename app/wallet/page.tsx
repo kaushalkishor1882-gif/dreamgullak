@@ -4,13 +4,30 @@ import { useEffect, useState } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { toast, Toaster } from "react-hot-toast";
+import { onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 export default function WalletPage() {
   const [goals, setGoals] = useState<any[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  // 🔄 Real-time listener for goals
+  // 🔐 Protect route - only logged-in users can access
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login"); // redirect to login if not logged in
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, [router]);
+
+  // 🔄 Real-time listener for goals (only runs after login)
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -37,6 +54,14 @@ export default function WalletPage() {
 
     return () => unsubscribe();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center text-purple-700 text-lg">
+        Loading your wallet...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-6">
@@ -92,9 +117,7 @@ export default function WalletPage() {
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
                     <div
                       className={`h-2.5 rounded-full ${
-                        progress >= 100
-                          ? "bg-green-500"
-                          : "bg-purple-500"
+                        progress >= 100 ? "bg-green-500" : "bg-purple-500"
                       }`}
                       style={{ width: `${progress}%` }}
                     ></div>
@@ -116,3 +139,4 @@ export default function WalletPage() {
     </div>
   );
 }
+

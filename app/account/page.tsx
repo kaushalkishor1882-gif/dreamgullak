@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signOut } from "firebase/auth";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,6 +23,16 @@ export default function AccountPage() {
     photo: "/default-avatar.png",
   });
 
+  // ✅ Redirect to login if not authenticated
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login"); // Force redirect (prevents back navigation)
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
   // ✅ Load profile from localStorage if available
   useEffect(() => {
     const saved = localStorage.getItem("userProfile");
@@ -35,10 +45,13 @@ export default function AccountPage() {
     }
   }, []);
 
+  // ✅ Logout function
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      router.push("/login");
+      localStorage.clear();
+      sessionStorage.clear();
+      router.replace("/login"); // Prevent going back
     } catch (err) {
       alert("Logout failed, please try again!");
       console.error(err);
@@ -58,14 +71,13 @@ export default function AccountPage() {
 
       {/* Profile Section */}
       <div className="flex items-center p-4 bg-white mt-2">
-        {/* ✅ Use next/image for proper rendering */}
         <div className="w-16 h-16 relative rounded-full overflow-hidden border">
           <Image
             src={profile.photo || "/default-avatar.png"}
             alt="Profile"
             fill
             className="object-cover"
-            unoptimized // allows base64 images to render
+            unoptimized
           />
         </div>
         <div className="ml-4">
@@ -165,4 +177,3 @@ export default function AccountPage() {
     </motion.div>
   );
 }
-

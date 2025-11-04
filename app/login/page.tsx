@@ -12,6 +12,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const provider = new GoogleAuthProvider();
 
   // ✨ Handle email/password login
@@ -47,6 +48,7 @@ export default function LoginPage() {
       <h1 className="text-3xl font-bold mb-6">🔐 DreamGullak Login</h1>
 
       <form onSubmit={handleLogin} className="flex flex-col space-y-4 w-80">
+        {/* Email Input */}
         <input
           type="email"
           placeholder="Email"
@@ -56,15 +58,26 @@ export default function LoginPage() {
           required
         />
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="p-2 border rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        {/* Password Input with Eye Toggle */}
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            className="p-2 border rounded w-full"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-2 text-gray-600 hover:text-gray-800"
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
 
+        {/* Login Button */}
         <button
           type="submit"
           className="bg-orange-500 text-white p-2 rounded hover:bg-orange-600"
@@ -72,6 +85,7 @@ export default function LoginPage() {
           Login
         </button>
 
+        {/* Google Login Button */}
         <button
           onClick={handleGoogleLogin}
           type="button"
@@ -103,3 +117,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

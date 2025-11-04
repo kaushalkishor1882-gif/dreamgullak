@@ -1,9 +1,22 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { auth } from "@/app/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Profile() {
   const router = useRouter();
+
+  // ✅ Protect route: redirect to /login if user not authenticated
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login"); // redirect to login
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
 
   const [profile, setProfile] = useState({
     name: "Master9385",

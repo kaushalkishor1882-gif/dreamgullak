@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
 
 interface Goal {
   id: string;
@@ -25,10 +26,25 @@ export default function DashboardPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const router = useRouter();
 
+  // ✅ 1. Protect route — redirect to login if user not logged in
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login"); // redirect to login if not logged in
+      }
+    });
+    return () => unsubscribeAuth();
+  }, [router]);
+
+  // ✅ 2. Fetch user's goals
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    const q = query(collection(db, "goals"), where("uid", "==", auth.currentUser.uid));
+    const q = query(
+      collection(db, "goals"),
+      where("uid", "==", auth.currentUser.uid)
+    );
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const goalsData = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -48,7 +64,7 @@ export default function DashboardPage() {
   const isGoalComplete = (goal: Goal) =>
     goal.currentAmount >= goal.targetAmount;
 
-  // 🎉 Navigate to Celebration screen if goal just got completed
+  // ✅ 3. Navigate to celebration screen if goal just completed
   useEffect(() => {
     const completedGoal = goals.find(
       (goal) => isGoalComplete(goal) && !goal.isDeleted
