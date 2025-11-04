@@ -1,7 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Profile() {
+  const router = useRouter();
+
   const [profile, setProfile] = useState({
     name: "Master9385",
     email: "master9385@gmail.com",
@@ -18,20 +21,20 @@ export default function Profile() {
   }, []);
 
   // ✅ Save profile to localStorage
-  const saveProfile = (updatedProfile) => {
+  const saveProfile = (updatedProfile: any) => {
     setProfile(updatedProfile);
     localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
   };
 
   // ✅ Handle input change
-  const handleChange = (e) => {
+  const handleChange = (e: any) => {
     const { name, value } = e.target;
     const updated = { ...profile, [name]: value };
     saveProfile(updated);
   };
 
   // ✅ Handle profile photo upload (convert to Base64)
-  const handlePhotoChange = (e) => {
+  const handlePhotoChange = (e: any) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -44,10 +47,11 @@ export default function Profile() {
     reader.readAsDataURL(file);
   };
 
-  // ✅ Manual save button
+  // ✅ Handle save button and navigate to /account
   const handleSave = () => {
     localStorage.setItem("userProfile", JSON.stringify(profile));
     alert("✅ Profile saved successfully!");
+    router.push("/account"); // ← Redirect to Account page
   };
 
   return (
@@ -109,4 +113,3 @@ export default function Profile() {
     </div>
   );
 }
-
