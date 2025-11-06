@@ -5,8 +5,15 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
+
+// ✅ Firestore import (new)
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,17 +22,26 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const provider = new GoogleAuthProvider();
 
-  // ✨ Handle email/password login
+  // 🔹 Handle Email/Password Login
   const handleLogin = async (e: any) => {
     e.preventDefault();
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      // check if verified
       if (!userCredential.user.emailVerified) {
         alert("⚠️ Please verify your email before logging in!");
         return;
       }
+
+      // ✅ Firestore update by UID (new)
+      const user = userCredential.user;
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          email: user.email,
+        },
+        { merge: true }
+      );
 
       router.push("/home");
     } catch (error: any) {
@@ -33,12 +49,44 @@ export default function LoginPage() {
     }
   };
 
-  // ✨ Handle Google login
+  // 🔹 Handle Google Login + Link Accounts
   const handleGoogleLogin = async () => {
     try {
-      await signInWithPopup(auth, provider);
+      const googleResult = await signInWithPopup(auth, provider);
+      const googleEmail = googleResult.user.email;
+
+      if (!googleEmail) return;
+
+      // Check if this email already exists with another method
+      const existingMethods = await fetchSignInMethodsForEmail(auth, googleEmail);
+
+      if (
+        existingMethods.includes("password") &&
+        !existingMethods.includes("google.com")
+      ) {
+        // 🔗 Link Google to existing Email/Password account
+        const passwordCredential = EmailAuthProvider.credential(
+          googleEmail,
+          prompt("Enter your password to link Google account:")
+        );
+
+        await linkWithCredential(googleResult.user, passwordCredential);
+        alert("✅ Your Google account is now linked with your existing DreamGullak account.");
+      }
+
+      // ✅ Firestore update by UID (new)
+      const user = googleResult.user;
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          email: user.email,
+        },
+        { merge: true }
+      );
+
       router.push("/home");
     } catch (error: any) {
+      console.error(error);
       alert("Google Login failed: " + error.message);
     }
   };
@@ -95,7 +143,6 @@ export default function LoginPage() {
         </button>
       </form>
 
-      {/* 🆕 Forgot Password Section */}
       <p className="text-sm text-center mt-4">
         <a
           onClick={() => router.push("/forgot-password")}
@@ -117,4 +164,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

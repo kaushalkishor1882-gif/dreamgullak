@@ -2,70 +2,121 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "@/app/lib/firebase";
+import { auth, db } from "@/app/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export default function Profile() {
   const router = useRouter();
-
-  // ✅ Protect route: redirect to /login if user not authenticated
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.replace("/login"); // redirect to login
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const [profile, setProfile] = useState({
-    name: "Master9385",
-    email: "master9385@gmail.com",
-    mobile: "+91 9876543210",
+    name: "",
+    email: "",
+    mobile: "",
     photo: "/default-avatar.png",
   });
 
-  // ✅ Load saved data from localStorage on first render
+  // ✅ Protect route: redirect to /login if user not authenticated
   useEffect(() => {
-    const saved = localStorage.getItem("userProfile");
-    if (saved) {
-      setProfile(JSON.parse(saved));
-    }
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        router.replace("/login");
+        return;
+      }
 
-  // ✅ Save profile to localStorage
-  const saveProfile = (updatedProfile: any) => {
-    setProfile(updatedProfile);
-    localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+      setUser(currentUser);
+      await loadProfile(currentUser.uid);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  // ✅ Load user data from Firestore
+  const loadProfile = async (uid: string) => {
+    try {
+      const docRef = doc(db, "users", uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setProfile({
+          name: data.name || "",
+          email: data.email || "",
+          mobile: data.phone || "",
+          photo: data.photo || "/default-avatar.png",
+        });
+      } else {
+        // Create a new empty document for new users
+        await setDoc(doc(db, "users", uid), {
+          name: "",
+          email: user?.email || "",
+          phone: "",
+          photo: "/default-avatar.png",
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      alert("❌ Failed to load profile data.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ✅ Handle input change
   const handleChange = (e: any) => {
     const { name, value } = e.target;
-    const updated = { ...profile, [name]: value };
-    saveProfile(updated);
+    setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Handle profile photo upload (convert to Base64)
+  // ✅ Handle photo upload (Base64)
   const handlePhotoChange = (e: any) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64String = reader.result;
-      const updated = { ...profile, photo: base64String };
-      saveProfile(updated);
+      const base64String = reader.result as string;
+      setProfile((prev) => ({ ...prev, photo: base64String }));
     };
     reader.readAsDataURL(file);
   };
 
-  // ✅ Handle save button and navigate to /account
-  const handleSave = () => {
-    localStorage.setItem("userProfile", JSON.stringify(profile));
+// ✅ Save profile changes to Firestore
+const handleSave = async () => {
+  try {
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    await setDoc(
+      doc(db, "users", user.uid),
+      {
+        name: profile.name,
+        email: profile.email,
+        phone: profile.mobile,
+        photo: profile.photo || user.photoURL || "",
+      },
+      { merge: true }
+    );
+
     alert("✅ Profile saved successfully!");
-    router.push("/account"); // ← Redirect to Account page
-  };
+    router.push("/account");
+  } catch (error) {
+    console.error("Error saving profile:", error);
+    alert("❌ Failed to save profile. Please try again.");
+  }
+};
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-gray-600 text-lg">
+        Loading profile...
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-md mx-auto">
@@ -105,6 +156,7 @@ export default function Profile() {
         value={profile.email}
         onChange={handleChange}
         className="w-full p-2 border rounded mb-4"
+        readOnly // 🧠 prevent users from changing their email directly
       />
 
       <label className="block mb-2 font-medium">Mobile</label>
@@ -126,3 +178,4 @@ export default function Profile() {
     </div>
   );
 }
+

@@ -2,7 +2,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOut, onAuthStateChanged } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth, db } from "../lib/firebase"; // ✅ Import Firestore
+import { doc, getDoc } from "firebase/firestore"; // ✅ To read profile
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -20,30 +21,54 @@ export default function AccountPage() {
   const router = useRouter();
   const [profile, setProfile] = useState({
     name: "Dream User",
+    email: "",
     photo: "/default-avatar.png",
   });
 
-  // ✅ Redirect to login if not authenticated
+  // ✅ Check authentication state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        router.replace("/login"); // Force redirect (prevents back navigation)
+        router.replace("/login");
+      } else {
+        // ✅ Fetch user profile from Firestore using UID
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(userRef);
+
+          if (docSnap.exists()) {
+            const userData = docSnap.data();
+            setProfile({
+              name: userData.name || "Dream User",
+              email: userData.email || user.email || "",
+              photo: userData.photo || user.photoURL || "/default-avatar.png",
+            });
+
+            // 🔄 Save locally for faster reload (optional)
+            localStorage.setItem(
+              "userProfile",
+              JSON.stringify({
+                name: userData.name || "Dream User",
+                email: userData.email || user.email || "",
+                photo: userData.photo || user.photoURL || "/default-avatar.png",
+              })
+            );
+          } else {
+            // 🆕 If no Firestore data found, fallback to Auth data
+            setProfile({
+              name: user.displayName || "Dream User",
+              email: user.email || "",
+              photo: user.photoURL || "/default-avatar.png",
+            });
+          }
+        } catch (err) {
+          console.error("Error loading user data:", err);
+        }
       }
     });
+
     return () => unsubscribe();
   }, [router]);
-
-  // ✅ Load profile from localStorage if available
-  useEffect(() => {
-    const saved = localStorage.getItem("userProfile");
-    if (saved) {
-      const data = JSON.parse(saved);
-      setProfile({
-        name: data.name || "Dream User",
-        photo: data.photo || "/default-avatar.png",
-      });
-    }
-  }, []);
 
   // ✅ Logout function
   const handleLogout = async () => {
@@ -51,7 +76,7 @@ export default function AccountPage() {
       await signOut(auth);
       localStorage.clear();
       sessionStorage.clear();
-      router.replace("/login"); // Prevent going back
+      router.replace("/login");
     } catch (err) {
       alert("Logout failed, please try again!");
       console.error(err);
@@ -82,6 +107,7 @@ export default function AccountPage() {
         </div>
         <div className="ml-4">
           <h3 className="font-semibold text-gray-800">{profile.name}</h3>
+          <p className="text-sm text-gray-600">{profile.email}</p>
           <Link href="/profile" className="text-purple-600 text-sm font-medium">
             SEE PROFILE
           </Link>
@@ -177,3 +203,4 @@ export default function AccountPage() {
     </motion.div>
   );
 }
+

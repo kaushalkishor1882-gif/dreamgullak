@@ -1,8 +1,14 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  fetchSignInMethodsForEmail,
+} from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { doc, setDoc } from "firebase/firestore";  // ✅ Added for Firestore
+import { db } from "../lib/firebase";               // ✅ Firestore DB import
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,18 +22,57 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Create a new user
+      // 🔍 Check if this email is already registered (Google or Email/Password)
+      const existingMethods = await fetchSignInMethodsForEmail(auth, email);
+
+      if (existingMethods.length > 0) {
+        if (existingMethods.includes("google.com")) {
+          alert(
+            "⚠️ This email is already registered using Google Sign-In. Please sign in with Google instead."
+          );
+        } else {
+          alert("⚠️ This email is already registered. Please log in instead.");
+        }
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Create a new user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-      // Send verification email
-      await sendEmailVerification(userCredential.user);
+      // ✅ Store user data in Firestore using UID
+      await setDoc(
+        doc(db, "users", user.uid), // 🔑 Path: users/{uid}
+        {
+          email: user.email,
+          name: "", // Optional - can be updated later
+          phone: "",
+          createdAt: new Date().toISOString(),
+        },
+        { merge: true } // Keeps existing fields safe
+      );
 
-      alert("📩 Verification email sent! Please check your inbox and verify before logging in.");
+      // ✅ Send verification email
+      await sendEmailVerification(user);
 
-      // Redirect to login after registration
+      alert("📩 Verification email sent! Please check your inbox before logging in.");
+
+      // 🚀 Redirect to login after registration
       router.push("/login");
+
     } catch (error: any) {
-      alert("Registration failed: " + error.message);
+      if (error.code === "auth/email-already-in-use") {
+        alert(
+          "⚠️ This email is already registered. Please log in instead or use Google Sign-In."
+        );
+      } else if (error.code === "auth/invalid-email") {
+        alert("❌ Invalid email format. Please enter a valid email address.");
+      } else if (error.code === "auth/weak-password") {
+        alert("⚠️ Password should be at least 6 characters long.");
+      } else {
+        alert("❌ Registration failed: " + error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -71,17 +116,20 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className={`p-2 rounded text-white font-semibold ${
-            loading ? "bg-gray-400" : "bg-yellow-500 hover:bg-yellow-600"
+          className={`p-2 rounded text-white font-semibold transition-all ${
+            loading ? "bg-gray-400 cursor-not-allowed" : "bg-yellow-500 hover:bg-yellow-600"
           }`}
         >
           {loading ? "Creating Account..." : "Register"}
         </button>
       </form>
 
-      <p className="mt-4">
+      <p className="mt-4 text-center">
         Already have an account?{" "}
-        <button className="text-blue-500 underline" onClick={() => router.push("/login")}>
+        <button
+          className="text-blue-500 underline"
+          onClick={() => router.push("/login")}
+        >
           Login
         </button>
       </p>
