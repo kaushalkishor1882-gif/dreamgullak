@@ -4,7 +4,17 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import GoBackButton from "../components/GoBackButton";
 import { db, auth } from "../lib/firebase";
-import { collection, query, where, getDocs, doc, updateDoc, increment } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  increment,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { addMoneyToGoal } from "../lib/updateGoal";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -16,7 +26,6 @@ export default function AddMoneyPage() {
   const [selectedGoal, setSelectedGoal] = useState("");
   const router = useRouter();
 
-  // 🧠 Ensure only logged-in users access
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) router.replace("/login");
@@ -24,7 +33,6 @@ export default function AddMoneyPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // 🎯 Fetch goals from Firestore
   useEffect(() => {
     const fetchGoals = async () => {
       if (!auth.currentUser) return;
@@ -100,9 +108,31 @@ export default function AddMoneyPage() {
 
             if (j?.success) {
               await addMoneyToGoal(selectedGoal, Number(amount));
+
+              // ✅ Save successful Razorpay transaction
+              await addDoc(collection(db, "transactions"), {
+                uid: auth.currentUser?.uid,
+                goalId: selectedGoal,
+                goalName: goals.find((g) => g.id === selectedGoal)?.goalName || "Goal",
+                type: "Razorpay",
+                amount: Number(amount),
+                status: "Success",
+                createdAt: serverTimestamp(),
+              });
+
               alert(`🎉 ₹${amount} added to your goal successfully!`);
               router.push("/home");
             } else {
+              // ❌ Failed transaction
+              await addDoc(collection(db, "transactions"), {
+                uid: auth.currentUser?.uid,
+                goalId: selectedGoal,
+                goalName: goals.find((g) => g.id === selectedGoal)?.goalName || "Goal",
+                type: "Razorpay",
+                amount: Number(amount),
+                status: "Failed",
+                createdAt: serverTimestamp(),
+              });
               alert("Payment done but verification failed. Contact support.");
             }
           } catch (err) {
@@ -129,12 +159,10 @@ export default function AddMoneyPage() {
     }
   };
 
-  // ✅ Direct Razorpay.me Payment Page
   const handleRazorpayPage = () => {
     window.open("https://razorpay.me/@kaushalkishor1976", "_blank");
   };
 
-  // ✅ Manual “Confirm Payment” (updates wallet)
   const handleConfirmPayment = async () => {
     if (!amount || Number(amount) <= 0) {
       alert("Enter a valid amount first.");
@@ -150,6 +178,18 @@ export default function AddMoneyPage() {
       await updateDoc(doc(db, "goals", selectedGoal), {
         currentAmount: increment(Number(amount)),
       });
+
+      // ✅ Save manual QR transaction
+      await addDoc(collection(db, "transactions"), {
+        uid: auth.currentUser?.uid,
+        goalId: selectedGoal,
+        goalName: goals.find((g) => g.id === selectedGoal)?.goalName || "Goal",
+        type: "QR Payment",
+        amount: Number(amount),
+        status: "Pending",
+        createdAt: serverTimestamp(),
+      });
+
       alert(`₹${amount} added to your goal successfully!`);
       setAmount("");
     } catch (error) {
@@ -160,7 +200,6 @@ export default function AddMoneyPage() {
     }
   };
 
-  // 🧩 UI
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
@@ -206,7 +245,6 @@ export default function AddMoneyPage() {
           <>
             <h2 className="text-lg font-semibold text-gray-700 mb-3">Choose Payment Method</h2>
 
-            {/* 🆕 Added QR Display at Top */}
             <div className="flex flex-col items-center justify-center mb-4">
               <img
                 src="/myqr.jpg"
@@ -243,7 +281,6 @@ export default function AddMoneyPage() {
                 🟪 Pay with Net Banking
               </button>
 
-              {/* 🟧 Razorpay Payment Link */}
               <button
                 onClick={handleRazorpayPage}
                 disabled={loading}
@@ -252,7 +289,6 @@ export default function AddMoneyPage() {
                 🟧 Pay with Razorpay
               </button>
 
-              {/* ✅ Confirm Payment Button (Manual Update) */}
               <button
                 onClick={handleConfirmPayment}
                 disabled={loading}
@@ -276,4 +312,3 @@ export default function AddMoneyPage() {
     </div>
   );
 }
-

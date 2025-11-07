@@ -13,6 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
+import Confetti from "react-confetti";
 
 interface Goal {
   id: string;
@@ -20,23 +21,25 @@ interface Goal {
   targetAmount: number;
   currentAmount: number;
   isDeleted?: boolean;
+  isCelebrated?: boolean;
 }
 
 export default function DashboardPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [celebratingGoal, setCelebratingGoal] = useState<Goal | null>(null);
+  const [confettiBlast, setConfettiBlast] = useState(false);
+  const [showToast, setShowToast] = useState(false); // animation toggle
   const router = useRouter();
 
-  // ✅ 1. Protect route — redirect to login if user not logged in
+  // Protect route
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.replace("/login"); // redirect to login if not logged in
-      }
+      if (!user) router.replace("/login");
     });
     return () => unsubscribeAuth();
   }, [router]);
 
-  // ✅ 2. Fetch user's goals
+  // Fetch goals
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -64,18 +67,30 @@ export default function DashboardPage() {
   const isGoalComplete = (goal: Goal) =>
     goal.currentAmount >= goal.targetAmount;
 
-  // ✅ 3. Navigate to celebration screen if goal just completed
+  // Celebrate goal
   useEffect(() => {
     const completedGoal = goals.find(
-      (goal) => isGoalComplete(goal) && !goal.isDeleted
+      (goal) => isGoalComplete(goal) && !goal.isDeleted && !goal.isCelebrated
     );
+
     if (completedGoal) {
-      router.push("/celebrate");
+      setCelebratingGoal(completedGoal);
+      setConfettiBlast(true);
+      setShowToast(true);
+
+      // Mark as celebrated
+      updateDoc(doc(db, "goals", completedGoal.id), { isCelebrated: true });
+
+      // Stop confetti after 7s
+      setTimeout(() => setConfettiBlast(false), 7000);
+
+      // Auto-dismiss toast after 5s
+      setTimeout(() => setShowToast(false), 5000);
     }
-  }, [goals, router]);
+  }, [goals]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-800 to-purple-700 text-white p-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-800 to-purple-700 text-white p-6 relative">
       <h1 className="text-4xl font-bold mb-4">📊 Your Dashboard</h1>
       <p className="mb-6 text-lg">Track all your DreamGullak goals</p>
 
@@ -104,7 +119,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* 🗑️ Delete Button */}
                 <button
                   onClick={() => handleDelete(goal.id)}
                   disabled={!isGoalComplete(goal)}
@@ -121,7 +135,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Deleted Goals Section */}
+      {/* Deleted Goals */}
       <div className="mt-10 w-full max-w-md">
         <h2 className="text-2xl font-semibold mb-3">🗂️ Deleted Goals</h2>
         {goals.filter((g) => g.isDeleted).length === 0 ? (
@@ -154,6 +168,32 @@ export default function DashboardPage() {
       >
         ← Back to Home
       </button>
+
+      {/* Celebration Toast */}
+      {celebratingGoal && showToast && (
+        <div
+          className={`absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 z-50 p-6 rounded-lg transition-all duration-500 ${
+            showToast ? "opacity-100" : "opacity-0 scale-90"
+          }`}
+        >
+          {confettiBlast && (
+            <Confetti
+              width={typeof window !== "undefined" ? window.innerWidth : 300}
+              height={typeof window !== "undefined" ? window.innerHeight : 300}
+              recycle={false}
+              numberOfPieces={400}
+              gravity={0.3}
+            />
+          )}
+          <div className="bg-white text-black rounded-xl p-6 shadow-2xl flex flex-col items-center max-w-md animate-slide-in">
+            <h2 className="text-3xl font-bold mb-2">🎉 Congratulations! 🎉</h2>
+            <p className="mb-4 text-center">
+              You completed your goal: <strong>{celebratingGoal.goalName}</strong>
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

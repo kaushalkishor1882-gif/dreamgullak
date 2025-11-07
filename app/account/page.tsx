@@ -1,9 +1,18 @@
+
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOut, onAuthStateChanged } from "firebase/auth";
-import { auth, db } from "../lib/firebase"; // ✅ Import Firestore
-import { doc, getDoc } from "firebase/firestore"; // ✅ To read profile
+import { auth, db } from "../lib/firebase";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+} from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -14,6 +23,7 @@ import {
   FaInfoCircle,
   FaSignOutAlt,
   FaGlobe,
+  FaHistory,
 } from "react-icons/fa";
 import BottomNav from "../components/BottomNav";
 
@@ -25,52 +35,66 @@ export default function AccountPage() {
     photo: "/default-avatar.png",
   });
 
-  // ✅ Check authentication state
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Fetch user profile + transactions
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.replace("/login");
-      } else {
-        // ✅ Fetch user profile from Firestore using UID
-        try {
-          const userRef = doc(db, "users", user.uid);
-          const docSnap = await getDoc(userRef);
+        return;
+      }
 
-          if (docSnap.exists()) {
-            const userData = docSnap.data();
-            setProfile({
-              name: userData.name || "Dream User",
-              email: userData.email || user.email || "",
-              photo: userData.photo || user.photoURL || "/default-avatar.png",
-            });
+      try {
+        // ✅ Load profile
+        const userRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(userRef);
 
-            // 🔄 Save locally for faster reload (optional)
-            localStorage.setItem(
-              "userProfile",
-              JSON.stringify({
-                name: userData.name || "Dream User",
-                email: userData.email || user.email || "",
-                photo: userData.photo || user.photoURL || "/default-avatar.png",
-              })
-            );
-          } else {
-            // 🆕 If no Firestore data found, fallback to Auth data
-            setProfile({
-              name: user.displayName || "Dream User",
-              email: user.email || "",
-              photo: user.photoURL || "/default-avatar.png",
-            });
-          }
-        } catch (err) {
-          console.error("Error loading user data:", err);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setProfile({
+            name: data.name || "Dream User",
+            email: data.email || user.email || "",
+            photo: data.photo || user.photoURL || "/default-avatar.png",
+          });
+        } else {
+          setProfile({
+            name: user.displayName || "Dream User",
+            email: user.email || "",
+            photo: user.photoURL || "/default-avatar.png",
+          });
         }
+
+        // ✅ Fetch transactions (check field name carefully)
+        const q = query(
+          collection(db, "transactions"),
+          where("userId", "==", user.uid),
+          orderBy("timestamp", "desc")
+        );
+
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const tx = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }));
+          setTransactions(tx);
+        } else {
+          console.warn("No transactions found for user:", user.uid);
+        }
+      } catch (err) {
+        console.error("Error loading user data:", err);
+      } finally {
+        setLoading(false);
       }
     });
 
     return () => unsubscribe();
   }, [router]);
 
-  // ✅ Logout function
+  // ✅ Logout
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -98,7 +122,7 @@ export default function AccountPage() {
       <div className="flex items-center p-4 bg-white mt-2">
         <div className="w-16 h-16 relative rounded-full overflow-hidden border">
           <Image
-            src={profile.photo || "/default-avatar.png"}
+            src={profile.photo}
             alt="Profile"
             fill
             className="object-cover"
@@ -114,7 +138,7 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* Language Section */}
+      {/* Language */}
       <div className="bg-white mt-3 p-4">
         <p className="font-medium text-gray-800 mb-2">Choose Language</p>
         <div className="flex gap-3">
@@ -127,7 +151,7 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* Menu List */}
+      {/* Menu */}
       <div className="bg-white mt-3 divide-y">
         <Link href="/wallet" className="flex items-center justify-between p-4 hover:bg-gray-50">
           <div className="flex items-center">
@@ -198,7 +222,48 @@ export default function AccountPage() {
         </button>
       </div>
 
-      {/* Bottom Navigation */}
+      {/* ✅ Transaction History */}
+      <div className="bg-white mt-4 p-4 rounded-lg shadow-sm">
+        <div className="flex items-center mb-3">
+          <FaHistory className="text-purple-600 mr-2" />
+          <h3 className="font-semibold text-gray-800 text-lg">Transaction History</h3>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-gray-500">Loading...</p>
+        ) : transactions.length === 0 ? (
+          <p className="text-sm text-gray-500">No transactions yet.</p>
+        ) : (
+          <ul className="divide-y">
+            {transactions.map((t) => (
+              <li key={t.id} className="py-2">
+                <div className="flex justify-between">
+                  <div>
+                    <p className="font-medium text-gray-800">
+                      ₹{t.amount} - {t.method?.toUpperCase() || "QR"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {t.timestamp?.toDate
+                        ? t.timestamp.toDate().toLocaleString()
+                        : t.createdAt?.toDate
+                        ? t.createdAt.toDate().toLocaleString()
+                        : new Date().toLocaleString()}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-sm font-semibold ${
+                      t.status === "success" ? "text-green-600" : "text-red-500"
+                    }`}
+                  >
+                    {t.status === "success" ? "Successful" : "Failed"}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <BottomNav />
     </motion.div>
   );

@@ -14,11 +14,11 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // 🔐 Protect route - only logged-in users can access
+  // ✅ Protect route
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        router.replace("/login"); // redirect to login if not logged in
+        router.replace("/login");
       } else {
         setLoading(false);
       }
@@ -27,29 +27,32 @@ export default function WalletPage() {
     return () => unsubscribeAuth();
   }, [router]);
 
-  // 🔄 Real-time listener for goals (only runs after login)
+  // ✅ Load wallet data
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    const q = query(collection(db, "goals"), where("uid", "==", auth.currentUser.uid));
+    const q = query(
+      collection(db, "goals"),
+      where("uid", "==", auth.currentUser.uid)
+    );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const goalsData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const goalsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setGoals(goalsData);
 
-      // 💰 Calculate total wallet balance
-      const total = goalsData.reduce((sum, goal) => sum + (goal.currentAmount || 0), 0);
+      const total = goalsData.reduce(
+        (sum, goal) => sum + (goal.currentAmount || 0),
+        0
+      );
       setTotalBalance(total);
 
-      // ⏱️ Update time
       const now = new Date();
-      setLastUpdated(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-
-      // 🎉 Toast notification
-      toast.success("Wallet Updated 💸", {
-        duration: 2000,
-        position: "top-center",
-      });
+      setLastUpdated(
+        now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      );
     });
 
     return () => unsubscribe();
@@ -72,33 +75,40 @@ export default function WalletPage() {
           💼 My Wallet
         </h1>
 
-        {/* 💰 Total Balance Card */}
+        {/* 💰 Balance Card */}
         <div className="bg-purple-600 text-white rounded-xl p-4 mb-6 text-center shadow-inner">
           <h2 className="text-lg font-semibold">Total Balance</h2>
-          <p className="text-3xl font-bold mt-1 transition-all duration-300">
-            ₹{totalBalance.toFixed(2)}
-          </p>
-          <p className="text-xs mt-2 opacity-80 animate-pulse">
+          <p className="text-3xl font-bold mt-1">₹{totalBalance.toFixed(2)}</p>
+          <p className="text-xs mt-2 opacity-80">
             ⏱️ Updated at {lastUpdated || "Loading..."}
           </p>
+
+          {/* ✅ Withdraw Button */}
+          <button
+            onClick={() => router.push("/withdraw")}
+            className="mt-4 bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-full font-semibold shadow-md transition-all"
+          >
+            Withdraw
+          </button>
         </div>
 
-        <h3 className="text-lg font-semibold mb-3 text-purple-800">
-          🎯 Your Goals
-        </h3>
+        <h3 className="text-lg font-semibold mb-3 text-purple-800">🎯 Your Goals</h3>
 
         {goals.length > 0 ? (
           <div className="space-y-4">
             {goals.map((goal) => {
               const progress =
                 goal.targetAmount > 0
-                  ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100)
+                  ? Math.min(
+                      (goal.currentAmount / goal.targetAmount) * 100,
+                      100
+                    )
                   : 0;
 
               return (
                 <div
                   key={goal.id}
-                  className="border rounded-xl p-4 hover:shadow-md transition-all duration-200"
+                  className="border rounded-xl p-4 hover:shadow-md"
                 >
                   <div className="flex justify-between items-center mb-2">
                     <p className="font-semibold text-purple-700">
@@ -106,21 +116,24 @@ export default function WalletPage() {
                     </p>
                     <p
                       className={`text-sm font-bold ${
-                        progress >= 100 ? "text-green-600" : "text-purple-600"
+                        progress >= 100
+                          ? "text-green-600"
+                          : "text-purple-600"
                       }`}
                     >
                       {progress.toFixed(0)}%
                     </p>
                   </div>
 
-                  {/* Progress Bar */}
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
                     <div
                       className={`h-2.5 rounded-full ${
-                        progress >= 100 ? "bg-green-500" : "bg-purple-500"
+                        progress >= 100
+                          ? "bg-green-500"
+                          : "bg-purple-500"
                       }`}
                       style={{ width: `${progress}%` }}
-                    ></div>
+                    />
                   </div>
 
                   <p className="text-sm text-gray-600">
@@ -139,4 +152,3 @@ export default function WalletPage() {
     </div>
   );
 }
-
