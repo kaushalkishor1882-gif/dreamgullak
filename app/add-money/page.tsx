@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import GoBackButton from "../components/GoBackButton";
 import { db, auth } from "../lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { addMoneyToGoal } from "../lib/updateGoal"; 
-import { onAuthStateChanged } from "firebase/auth"; // ✅ Added for auth protection
+import { collection, query, where, getDocs, doc, updateDoc, increment } from "firebase/firestore";
+import { addMoneyToGoal } from "../lib/updateGoal";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function AddMoneyPage() {
   const [amount, setAmount] = useState("");
@@ -16,17 +16,15 @@ export default function AddMoneyPage() {
   const [selectedGoal, setSelectedGoal] = useState("");
   const router = useRouter();
 
-  // ✅ Authentication check: redirect if not logged in
+  // 🧠 Ensure only logged-in users access
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.replace("/login");
-      }
+      if (!user) router.replace("/login");
     });
     return () => unsubscribe();
   }, [router]);
 
-  // ✅ Fetch all user goals from Firestore
+  // 🎯 Fetch goals from Firestore
   useEffect(() => {
     const fetchGoals = async () => {
       if (!auth.currentUser) return;
@@ -37,7 +35,6 @@ export default function AddMoneyPage() {
     fetchGoals();
   }, []);
 
-  // ✅ Load Razorpay SDK
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement("script");
@@ -54,7 +51,6 @@ export default function AddMoneyPage() {
     setShowMethods(true);
   };
 
-  // ✅ Handle Razorpay payment
   const handlePayment = async (method: string) => {
     setLoading(true);
     try {
@@ -103,7 +99,6 @@ export default function AddMoneyPage() {
             const j = await verifyRes.json();
 
             if (j?.success) {
-              // ✅ Update Firestore Goal Balance
               await addMoneyToGoal(selectedGoal, Number(amount));
               alert(`🎉 ₹${amount} added to your goal successfully!`);
               router.push("/home");
@@ -134,6 +129,38 @@ export default function AddMoneyPage() {
     }
   };
 
+  // ✅ Direct Razorpay.me Payment Page
+  const handleRazorpayPage = () => {
+    window.open("https://razorpay.me/@kaushalkishor1976", "_blank");
+  };
+
+  // ✅ Manual “Confirm Payment” (updates wallet)
+  const handleConfirmPayment = async () => {
+    if (!amount || Number(amount) <= 0) {
+      alert("Enter a valid amount first.");
+      return;
+    }
+    if (!selectedGoal) {
+      alert("Please select a goal to update.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, "goals", selectedGoal), {
+        currentAmount: increment(Number(amount)),
+      });
+      alert(`₹${amount} added to your goal successfully!`);
+      setAmount("");
+    } catch (error) {
+      console.error("Error updating wallet:", error);
+      alert("Something went wrong while updating wallet.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🧩 UI
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
@@ -141,7 +168,6 @@ export default function AddMoneyPage() {
 
         {!showMethods ? (
           <>
-            {/* ✅ Show goal selector */}
             <label className="block font-medium mb-2 text-gray-700">Select Goal</label>
             <select
               className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -179,6 +205,19 @@ export default function AddMoneyPage() {
         ) : (
           <>
             <h2 className="text-lg font-semibold text-gray-700 mb-3">Choose Payment Method</h2>
+
+            {/* 🆕 Added QR Display at Top */}
+            <div className="flex flex-col items-center justify-center mb-4">
+              <img
+                src="/myqr.jpg"
+                alt="UPI QR Code"
+                className="w-60 h-60 mb-3 border-4 border-purple-200 rounded-xl shadow-md"
+              />
+              <p className="text-gray-600 text-sm text-center">
+                📱 Scan this UPI QR using GPay / Paytm / PhonePe to send your payment.
+              </p>
+            </div>
+
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => handlePayment("paytm")}
@@ -187,6 +226,7 @@ export default function AddMoneyPage() {
               >
                 🟦 Pay with Paytm
               </button>
+
               <button
                 onClick={() => handlePayment("gpay")}
                 disabled={loading}
@@ -194,12 +234,31 @@ export default function AddMoneyPage() {
               >
                 🟩 Pay with GPay
               </button>
+
               <button
                 onClick={() => handlePayment("netbanking")}
                 disabled={loading}
                 className="flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg transition"
               >
                 🟪 Pay with Net Banking
+              </button>
+
+              {/* 🟧 Razorpay Payment Link */}
+              <button
+                onClick={handleRazorpayPage}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg transition"
+              >
+                🟧 Pay with Razorpay
+              </button>
+
+              {/* ✅ Confirm Payment Button (Manual Update) */}
+              <button
+                onClick={handleConfirmPayment}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition"
+              >
+                {loading ? "Updating..." : "✅ Confirm Payment (Manual)"}
               </button>
             </div>
 
@@ -217,3 +276,4 @@ export default function AddMoneyPage() {
     </div>
   );
 }
+
