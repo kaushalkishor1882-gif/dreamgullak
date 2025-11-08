@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/app/lib/firebase";
+import { auth } from "@/lib/firebase";
 import BottomNav from "./BottomNav";
 
 export default function ClientLayout({
