@@ -3,7 +3,6 @@ import { db } from "@/lib/firebase";
 import {
   doc,
   getDoc,
-  updateDoc,
   runTransaction,
   collection,
   query,
@@ -11,7 +10,7 @@ import {
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
-import { sendUserEmail } from "@/lib/notify"; // use correct alias
+import { sendUserEmail } from "@/lib/notify";
 
 export async function GET(req: Request) {
   try {
@@ -19,7 +18,6 @@ export async function GET(req: Request) {
     const withdrawalId = url.searchParams.get("withdrawalId");
     const token = url.searchParams.get("token");
 
-    // ✅ Validate token and withdrawalId
     if (!withdrawalId || token !== process.env.ADMIN_SECRET_TOKEN) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
@@ -37,27 +35,22 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, error: "Already approved" }, { status: 400 });
     }
 
-    // ✅ Deduct from goals atomically
+    // Deduct from goals atomically
     await runTransaction(db, async (tx) => {
       const goalsQ = query(collection(db, "goals"), where("uid", "==", w.uid));
       const goalsSnap = await getDocs(goalsQ);
-
       let remaining = Number(w.amount);
 
       for (const gdoc of goalsSnap.docs) {
         if (remaining <= 0) break;
-
         const gRef = doc(db, "goals", gdoc.id);
         const cur = Number(gdoc.data().currentAmount || 0);
-
         if (cur <= 0) continue;
-
         const deduct = Math.min(cur, remaining);
         tx.update(gRef, { currentAmount: cur - deduct });
         remaining -= deduct;
       }
 
-      // Update withdrawal status
       tx.update(wRef, {
         status: "approved",
         approvedAt: serverTimestamp(),
@@ -65,21 +58,16 @@ export async function GET(req: Request) {
       });
     });
 
-    // ✅ Send user email
-    try {
-      if (w.userEmail) {
-        await sendUserEmail(
-          w.userEmail,
-          "Your withdrawal has been approved ✅",
-          `Your withdrawal of ₹${w.amount} has been successfully processed.`,
-          `<p>Your withdrawal of <b>₹${w.amount}</b> has been approved and paid.</p>`
-        );
-      }
-    } catch (notifyErr) {
-      console.error("Error sending user email:", notifyErr);
+    // Send user email
+    if (w.userEmail) {
+      await sendUserEmail(
+        w.userEmail,
+        "Your withdrawal has been approved ✅",
+        `Your withdrawal of ₹${w.amount} has been successfully processed.`,
+        `<p>Your withdrawal of <b>₹${w.amount}</b> has been approved and paid.</p>`
+      );
     }
 
-    // Redirect admin back to dashboard (optional)
     return NextResponse.redirect("http://localhost:3000/admin/withdrawals?msg=approved");
   } catch (err: any) {
     console.error("Approve withdrawal error:", err);

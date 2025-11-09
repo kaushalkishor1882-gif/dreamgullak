@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-} from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 
 export default function AdminWithdrawalsPage() {
   const [user, setUser] = useState<any>(null);
@@ -28,7 +23,6 @@ export default function AdminWithdrawalsPage() {
 
   useEffect(() => {
     if (!user) return;
-    // NOTE: you might want to check admin UID/claim here to restrict access
     const q = query(collection(db, "withdrawals"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       setWithdrawals(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -37,6 +31,42 @@ export default function AdminWithdrawalsPage() {
   }, [user]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+
+const approveWithdrawal = async (withdrawalId: string) => {
+  if (!confirm("Approve and mark as paid?")) return;
+
+  try {
+    const res = await fetch("/api/admin/withdraw/callApprove", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ withdrawalId }),
+    });
+
+    const data = await res.json();
+    if (data.ok) alert("Withdrawal approved successfully ✅");
+    else alert(`Error approving withdrawal: ${data.error}`);
+  } catch (err) {
+    console.error(err);
+    alert("Unexpected error while approving withdrawal.");
+  }
+};
+
+  const rejectWithdrawal = async (withdrawalId: string) => {
+    const reason = prompt("Reason for rejection (optional):") || "";
+    if (!confirm("Reject this withdrawal?")) return;
+
+    try {
+      await fetch("/api/admin/withdraw/reject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: withdrawalId, reason }),
+      });
+      location.reload();
+    } catch (err) {
+      console.error(err);
+      alert("Unexpected error while rejecting withdrawal.");
+    }
+  };
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -76,43 +106,18 @@ export default function AdminWithdrawalsPage() {
 
                   <div className="flex gap-2">
                     {w.status !== "completed" && (
-                      <button
-                        onClick={() => {
-                          // Call approve API
-                          if (!confirm("Approve and mark as paid?")) return;
-                          fetch(`/api/admin/withdraw/approve`, {
-                            method: "POST",
-                            headers: { "content-type": "application/json" },
-                            body: JSON.stringify({ id: w.id })
-                          }).then(() => location.reload());
-                        }}
-                        className="bg-green-600 text-white px-3 py-1 rounded"
-                      >
-                        Approve
-                      </button>
+                  <button onClick={() => approveWithdrawal(w.id)} className="bg-green-600 text-white px-3 py-1 rounded">
+                    Approve
+                  </button>
                     )}
 
                     {w.status !== "rejected" && (
-                      <button
-                        onClick={() => {
-                          const reason = prompt("Reason for rejection (optional):") || "";
-                          if (!confirm("Reject this withdrawal?")) return;
-                          fetch(`/api/admin/withdraw/reject`, {
-                            method: "POST",
-                            headers: { "content-type": "application/json" },
-                            body: JSON.stringify({ id: w.id, reason })
-                          }).then(() => location.reload());
-                        }}
-                        className="bg-red-500 text-white px-3 py-1 rounded"
-                      >
+                      <button onClick={() => rejectWithdrawal(w.id)} className="bg-red-500 text-white px-3 py-1 rounded">
                         Reject
                       </button>
                     )}
 
-                    <button
-                      onClick={() => navigator.clipboard.writeText(JSON.stringify(w, null, 2))}
-                      className="bg-gray-200 text-black px-3 py-1 rounded"
-                    >
+                    <button onClick={() => navigator.clipboard.writeText(JSON.stringify(w, null, 2))} className="bg-gray-200 text-black px-3 py-1 rounded">
                       Copy JSON
                     </button>
                   </div>
