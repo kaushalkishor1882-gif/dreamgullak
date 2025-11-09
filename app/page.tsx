@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
@@ -18,10 +19,26 @@ export default function HomePage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-800 to-indigo-900">
-      <div className="bg-white/10 backdrop-blur-lg p-10 rounded-2xl text-center shadow-lg border border-white/20">
+      {/* Removed the different-color box */}
+      <div className="text-center flex flex-col items-center">
+        
+        {/* White Ganesha Image */}
+        <div className="relative mb-6">
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[100px] bg-black/30 blur-[80px] rounded-full opacity-40"></div>
+          <Image
+            src="/WhiteGanesha.png"
+            alt="White Ganesha"
+            width={300}
+            height={300}
+            className="object-contain drop-shadow-2xl relative z-10"
+            priority
+          />
+        </div>
+
         <h1 className="text-4xl font-extrabold text-white mb-3">
           Welcome to <span className="text-pink-400">DreamGullak 🐷</span>
         </h1>
+
         <p className="text-gray-200 mb-8">
           Your simple digital piggy bank to save for dreams ✨
         </p>
@@ -44,3 +61,4 @@ export default function HomePage() {
     </div>
   );
 }
+
