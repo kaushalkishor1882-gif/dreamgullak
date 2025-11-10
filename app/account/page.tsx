@@ -1,4 +1,3 @@
-
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -169,6 +168,16 @@ export default function AccountPage() {
             <div>
               <p className="font-medium text-gray-800">Complete your KYC</p>
               <p className="text-sm text-gray-500">Verify your identity</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/refer" className="flex items-center justify-between p-4 hover:bg-gray-50">
+          <div className="flex items-center">
+            <FaGlobe className="text-purple-600 mr-3" size={20} />
+            <div>
+              <p className="font-medium text-gray-800">Refer Friends</p>
+              <p className="text-sm text-gray-500">Share Dream Gullak with your friends</p>
             </div>
           </div>
         </Link>
