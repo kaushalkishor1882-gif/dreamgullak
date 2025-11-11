@@ -1,6 +1,25 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../lib/firebase";
+
 export default function ReferPage() {
+  const router = useRouter();
+
+  // ✅ Protect route: redirect to login if user not logged in
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        // Save current path so we can return after login
+        sessionStorage.setItem("redirectAfterLogin", "/refer");
+        router.replace("/login");
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
   const appLink = "https://www.dreamgullak.in";
   const shareText = `Hey! 👋 Check out Dream Gullak, the smart and easy way to save up for your goals. Whether it’s a new gadget, a trip, or a dream purchase, Dream Gullak helps you save securely and stay on track. Start building your saving habit today! Visit now: ${appLink}`;
   const imageURL = `${appLink}/dreamgullak-share.png`;
@@ -52,8 +71,8 @@ export default function ReferPage() {
       <p className="mb-6">Share Dream Gullak with your friends!</p>
 
       <img
-        src={imageURL}
-        alt="Dream Gullak Logo"
+        src="/share.png"
+        alt="Dream Gullak Share Image"
         className="mx-auto mb-6 w-32 h-32 rounded-full shadow-md"
       />
 
