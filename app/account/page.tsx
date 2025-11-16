@@ -26,8 +26,99 @@ import {
 } from "react-icons/fa";
 import BottomNav from "../components/BottomNav";
 
+// ----------------------------
+// ⭐ SAFE LOCAL TRANSLATIONS
+// ----------------------------
+const TEXT = {
+  en: {
+    account: "Account",
+    see_profile: "SEE PROFILE",
+    choose_language: "Choose Language",
+    english: "English",
+    hindi: "हिंदी",
+
+    wallet_balance: "Wallet Balance",
+    wallet_description: "Check your savings",
+
+    complete_kyc: "Complete your KYC",
+    complete_kyc_desc: "Verify your identity",
+
+    refer_friends: "Refer Friends",
+    refer_friends_desc: "Share Dream Gullak with your friends",
+
+    help_support: "Help & Support",
+    help_support_desc: "Customer support, FAQs",
+
+    about: "About Dream Gullak",
+    terms: "Terms & Conditions",
+    privacy: "Privacy Policy",
+    contact_us: "Contact Us",
+
+    logout: "Logout",
+
+    transaction_history: "Transaction History",
+    loading: "Loading...",
+    no_transactions: "No transactions yet.",
+    successful: "Successful",
+    failed: "Failed",
+  },
+
+  hi: {
+    account: "अकाउंट",
+    see_profile: "प्रोफ़ाइल देखें",
+    choose_language: "भाषा चुनें",
+    english: "English",
+    hindi: "हिंदी",
+
+    wallet_balance: "वॉलेट बैलेंस",
+    wallet_description: "अपनी बचत देखें",
+
+    complete_kyc: "KYC पूरा करें",
+    complete_kyc_desc: "अपनी पहचान सत्यापित करें",
+
+    refer_friends: "दोस्तों को रेफर करें",
+    refer_friends_desc: "अपने दोस्तों के साथ Dream Gullak साझा करें",
+
+    help_support: "मदद और समर्थन",
+    help_support_desc: "कस्टमर सपोर्ट, FAQs",
+
+    about: "Dream Gullak के बारे में",
+    terms: "नियम और शर्तें",
+    privacy: "प्राइवेसी पॉलिसी",
+    contact_us: "संपर्क करें",
+
+    logout: "लॉगआउट",
+
+    transaction_history: "लेन-देन इतिहास",
+    loading: "लोड हो रहा है...",
+    no_transactions: "अभी तक कोई लेन-देन नहीं",
+    successful: "सफल",
+    failed: "असफल",
+  },
+};
+  
 export default function AccountPage() {
   const router = useRouter();
+
+  // ⭐ Load language from localStorage
+  const [lang, setLang] = useState<"en" | "hi">("en");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("lang");
+    if (saved === "hi" || saved === "en") {
+      setLang(saved);
+    }
+  }, []);
+
+  const t = (key: string) => TEXT[lang][key] || key;
+
+  const changeLang = (newLang: "en" | "hi") => {
+    setLang(newLang);
+    localStorage.setItem("lang", newLang);
+  };
+
+  // -----------------------------
+
   const [profile, setProfile] = useState({
     name: "Dream User",
     email: "",
@@ -37,7 +128,7 @@ export default function AccountPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Fetch user profile + transactions
+  // Fetch user profile + transactions
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -46,7 +137,6 @@ export default function AccountPage() {
       }
 
       try {
-        // ✅ Load profile
         const userRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(userRef);
 
@@ -65,7 +155,6 @@ export default function AccountPage() {
           });
         }
 
-        // ✅ Fetch transactions (check field name carefully)
         const q = query(
           collection(db, "transactions"),
           where("userId", "==", user.uid),
@@ -80,11 +169,9 @@ export default function AccountPage() {
             ...d.data(),
           }));
           setTransactions(tx);
-        } else {
-          console.warn("No transactions found for user:", user.uid);
         }
       } catch (err) {
-        console.error("Error loading user data:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -93,17 +180,12 @@ export default function AccountPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // ✅ Logout
+  // Logout
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      localStorage.clear();
-      sessionStorage.clear();
-      router.replace("/login");
-    } catch (err) {
-      alert("Logout failed, please try again!");
-      console.error(err);
-    }
+    await signOut(auth);
+    localStorage.clear();
+    sessionStorage.clear();
+    router.replace("/login");
   };
 
   return (
@@ -114,38 +196,44 @@ export default function AccountPage() {
     >
       {/* Header */}
       <div className="flex items-center justify-center p-4 bg-white shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800">Account</h2>
+        <h2 className="text-lg font-semibold text-gray-800">{t("account")}</h2>
       </div>
 
-      {/* Profile Section */}
+      {/* Profile */}
       <div className="flex items-center p-4 bg-white mt-2">
         <div className="w-16 h-16 relative rounded-full overflow-hidden border">
-          <Image
-            src={profile.photo}
-            alt="Profile"
-            fill
-            className="object-cover"
-            unoptimized
-          />
+          <Image src={profile.photo} alt="Profile" fill className="object-cover" unoptimized />
         </div>
         <div className="ml-4">
           <h3 className="font-semibold text-gray-800">{profile.name}</h3>
           <p className="text-sm text-gray-600">{profile.email}</p>
           <Link href="/profile" className="text-purple-600 text-sm font-medium">
-            SEE PROFILE
+            {t("see_profile")}
           </Link>
         </div>
       </div>
 
       {/* Language */}
       <div className="bg-white mt-3 p-4">
-        <p className="font-medium text-gray-800 mb-2">Choose Language</p>
+        <p className="font-medium text-gray-800 mb-2">{t("choose_language")}</p>
+
         <div className="flex gap-3">
-          <button className="bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium">
-            English
+          <button
+            onClick={() => changeLang("en")}
+            className={`px-4 py-2 rounded-full text-sm font-medium ${
+              lang === "en" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-800"
+            }`}
+          >
+            {t("english")}
           </button>
-          <button className="bg-gray-200 text-gray-800 px-4 py-2 rounded-full text-sm font-medium">
-            हिंदी
+
+          <button
+            onClick={() => changeLang("hi")}
+            className={`px-4 py-2 rounded-full text-sm font-medium ${
+              lang === "hi" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-800"
+            }`}
+          >
+            {t("hindi")}
           </button>
         </div>
       </div>
@@ -156,8 +244,8 @@ export default function AccountPage() {
           <div className="flex items-center">
             <FaWallet className="text-purple-600 mr-3" size={20} />
             <div>
-              <p className="font-medium text-gray-800">Wallet Balance</p>
-              <p className="text-sm text-gray-500">Check your savings</p>
+              <p className="font-medium text-gray-800">{t("wallet_balance")}</p>
+              <p className="text-sm text-gray-500">{t("wallet_description")}</p>
             </div>
           </div>
         </Link>
@@ -166,8 +254,8 @@ export default function AccountPage() {
           <div className="flex items-center">
             <FaUserCheck className="text-purple-600 mr-3" size={20} />
             <div>
-              <p className="font-medium text-gray-800">Complete your KYC</p>
-              <p className="text-sm text-gray-500">Verify your identity</p>
+              <p className="font-medium text-gray-800">{t("complete_kyc")}</p>
+              <p className="text-sm text-gray-500">{t("complete_kyc_desc")}</p>
             </div>
           </div>
         </Link>
@@ -176,8 +264,8 @@ export default function AccountPage() {
           <div className="flex items-center">
             <FaGlobe className="text-purple-600 mr-3" size={20} />
             <div>
-              <p className="font-medium text-gray-800">Refer Friends</p>
-              <p className="text-sm text-gray-500">Share Dream Gullak with your friends</p>
+              <p className="font-medium text-gray-800">{t("refer_friends")}</p>
+              <p className="text-sm text-gray-500">{t("refer_friends_desc")}</p>
             </div>
           </div>
         </Link>
@@ -186,8 +274,8 @@ export default function AccountPage() {
           <div className="flex items-center">
             <FaHeadset className="text-purple-600 mr-3" size={20} />
             <div>
-              <p className="font-medium text-gray-800">Help & Support</p>
-              <p className="text-sm text-gray-500">Customer support, FAQs</p>
+              <p className="font-medium text-gray-800">{t("help_support")}</p>
+              <p className="text-sm text-gray-500">{t("help_support_desc")}</p>
             </div>
           </div>
         </Link>
@@ -195,28 +283,28 @@ export default function AccountPage() {
         <Link href="/about" className="flex items-center justify-between p-4 hover:bg-gray-50">
           <div className="flex items-center">
             <FaInfoCircle className="text-purple-600 mr-3" size={20} />
-            <p className="font-medium text-gray-800">About Dream Gullak</p>
+            <p className="font-medium text-gray-800">{t("about")}</p>
           </div>
         </Link>
 
         <Link href="/terms" className="flex items-center justify-between p-4 hover:bg-gray-50">
           <div className="flex items-center">
             <FaGlobe className="text-purple-600 mr-3" size={20} />
-            <p className="font-medium text-gray-800">Terms & Conditions</p>
+            <p className="font-medium text-gray-800">{t("terms")}</p>
           </div>
         </Link>
 
         <Link href="/privacy" className="flex items-center justify-between p-4 hover:bg-gray-50">
           <div className="flex items-center">
             <FaGlobe className="text-purple-600 mr-3" size={20} />
-            <p className="font-medium text-gray-800">Privacy Policy</p>
+            <p className="font-medium text-gray-800">{t("privacy")}</p>
           </div>
         </Link>
 
         <Link href="/contact" className="flex items-center justify-between p-4 hover:bg-gray-50">
           <div className="flex items-center">
             <FaHeadset className="text-purple-600 mr-3" size={20} />
-            <p className="font-medium text-gray-800">Contact Us</p>
+            <p className="font-medium text-gray-800">{t("contact_us")}</p>
           </div>
         </Link>
 
@@ -226,22 +314,24 @@ export default function AccountPage() {
         >
           <div className="flex items-center">
             <FaSignOutAlt className="text-purple-600 mr-3" size={20} />
-            <p className="font-medium text-gray-800">Logout</p>
+            <p className="font-medium text-gray-800">{t("logout")}</p>
           </div>
         </button>
       </div>
 
-      {/* ✅ Transaction History */}
+      {/* Transaction History */}
       <div className="bg-white mt-4 p-4 rounded-lg shadow-sm">
         <div className="flex items-center mb-3">
           <FaHistory className="text-purple-600 mr-2" />
-          <h3 className="font-semibold text-gray-800 text-lg">Transaction History</h3>
+          <h3 className="font-semibold text-gray-800 text-lg">
+            {t("transaction_history")}
+          </h3>
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-500">Loading...</p>
+          <p className="text-sm text-gray-500">{t("loading")}</p>
         ) : transactions.length === 0 ? (
-          <p className="text-sm text-gray-500">No transactions yet.</p>
+          <p className="text-sm text-gray-500">{t("no_transactions")}</p>
         ) : (
           <ul className="divide-y">
             {transactions.map((t) => (
@@ -264,7 +354,9 @@ export default function AccountPage() {
                       t.status === "success" ? "text-green-600" : "text-red-500"
                     }`}
                   >
-                    {t.status === "success" ? "Successful" : "Failed"}
+                    {t.status === "success"
+                      ? t("successful")
+                      : t("failed")}
                   </span>
                 </div>
               </li>
