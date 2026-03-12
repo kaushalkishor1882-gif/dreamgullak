@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+
 import ClientLayout from "./components/ClientLayout";
-import ClientProviders from "./components/ClientProviders"; // ✅ added
+import ClientProviders from "./components/ClientProviders";
+
+// ⭐ Add ThemeProvider
+import { ThemeProvider } from "./context/ThemeContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,16 +29,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 pb-20`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* ✅ Now wrap the whole app with i18n + other client providers */}
-        <ClientProviders>
-          <ClientLayout>{children}</ClientLayout>
-        </ClientProviders>
+        {/* ⭐ Wrap entire app with ThemeProvider */}
+        <ThemeProvider>
+          {/* Your other providers remain intact */}
+          <ClientProviders>
+            <ClientLayout>{children}</ClientLayout>
+          </ClientProviders>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
-

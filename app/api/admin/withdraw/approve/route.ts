@@ -10,7 +10,7 @@ import {
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
-import { sendUserEmail } from "@/lib/notify";
+import { sendUserEmail } from "@/app/lib/notify";
 
 export async function GET(req: Request) {
   try {
