@@ -46,7 +46,7 @@ export default function DownloadLanding() {
           </div>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <a href="/" className="hover:text-purple-700 transition">Home</a>
+            <a href="/login" className="bg-purple-700 text-white px-5 py-2 rounded-full shadow hover:bg-purple-800 transition">Login</a>
             <a href="/download" className="bg-purple-700 text-white px-5 py-2 rounded-full shadow hover:bg-purple-800 transition">Download</a>
           </div>
         </div>

@@ -1,10 +1,36 @@
 @import "tailwindcss";
 
+/* ------------------------------
+   🌙 GLOBAL LIGHT + DARK THEME
+-------------------------------*/
+
+/* LIGHT MODE (DEFAULT) */
 :root {
+  --bg: #ffffff;
+  --bg-card: #ffffff;
+  --text: #1f2937;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+
+  /* your existing variables */
   --background: #ffffff;
   --foreground: #171717;
 }
 
+/* DARK MODE (MANUAL ACTIVATION WITH .dark CLASS) */
+.dark {
+  --bg: #111111;
+  --bg-card: #1a1a1a;
+  --text: #ffffff;
+  --text-secondary: #cccccc;
+  --border: #444444;
+
+  /* keep your existing dark fallback */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+/* Tailwind theme connection */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -12,15 +38,37 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* OPTIONAL: auto-dark fallback if user prefers dark */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.dark) {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
 }
 
+/* ------------------------------
+   🌎 GLOBAL APPLY
+-------------------------------*/
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg);
+  color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
+
+/* ------------------------------
+   🪄 AUTO OVERRIDE TAILWIND COLORS
+   (makes ALL 13+ pages dark-compatible)
+-------------------------------*/
+
+.bg-white       { background-color: var(--bg-card) !important; }
+.bg-gray-50     { background-color: var(--bg) !important; }
+.bg-gray-100    { background-color: var(--bg-card) !important; }
+
+.text-gray-800  { color: var(--text) !important; }
+.text-gray-700  { color: var(--text) !important; }
+.text-gray-600  { color: var(--text-secondary) !important; }
+.text-gray-500  { color: var(--text-secondary) !important; }
+
+.divide-gray-200 { border-color: var(--border) !important; }
