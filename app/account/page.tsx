@@ -140,7 +140,10 @@ export default function AccountPage() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.replace("/login");
-        return;
+const q = query(
+  collection(db, "transactions"),
+  orderBy("createdAt", "desc")
+);        return;
       }
 
       try {
@@ -165,7 +168,7 @@ export default function AccountPage() {
         const q = query(
           collection(db, "transactions"),
           where("userId", "==", user.uid),
-          orderBy("timestamp", "desc")
+          orderBy("createdAt", "desc")
         );
 
         const snapshot = await getDocs(q);

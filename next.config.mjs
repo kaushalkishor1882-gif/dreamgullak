@@ -1,11 +1,11 @@
 // next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,   // ✅ disables eslint errors on build
-  },
   typescript: {
-    ignoreBuildErrors: true,    // ✅ disables TS "any" errors
+    ignoreBuildErrors: true,
+  },
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
   },
 };
 

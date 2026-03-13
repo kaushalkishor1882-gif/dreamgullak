@@ -44,3 +44,4 @@ serviceAccountKey.json
 serviceAccountKey.json
 *.key.json
 *.secret.json
+.env*.local
