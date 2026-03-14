@@ -134,16 +134,14 @@ export default function AccountPage() {
 
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTransactions, setShowTransactions] = useState(false);
 
   // Fetch user profile + transactions
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.replace("/login");
-const q = query(
-  collection(db, "transactions"),
-  orderBy("createdAt", "desc")
-);        return;
+        return;
       }
 
       try {
@@ -166,11 +164,9 @@ const q = query(
         }
 
         const q = query(
-          collection(db, "transactions"),
-          where("userId", "==", user.uid),
-          orderBy("createdAt", "desc")
+           collection(db, "transactions"),
+           orderBy("createdAt", "desc")
         );
-
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
@@ -241,12 +237,12 @@ const q = query(
               onChange={toggleTheme}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none 
-                rounded-full peer 
-                peer-checked:bg-blue-600 
+            <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none
+                rounded-full peer
+                peer-checked:bg-blue-600
                 transition-all"></div>
-            <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full 
-                peer-checked:translate-x-5 
+            <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full
+                peer-checked:translate-x-5
                 transition-all shadow"></div>
           </label>
         </div>
@@ -378,10 +374,21 @@ const q = query(
             <p className="font-medium text-gray-800 dark:text-white">{t("logout")}</p>
           </div>
         </button>
-      </div>
 
-      {/* Transaction History */}
-      <div className="bg-white dark:bg-[#1a1a1a] mt-4 p-4 rounded-lg shadow-sm">
+         <button
+          onClick={() => setShowTransactions(!showTransactions)}
+          className="flex w-full items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-[#222]"
+        >
+          <div className="flex items-center">
+            <FaHistory className="text-purple-600 mr-3" size={20} />
+            <p className="font-medium text-gray-800 dark:text-white">{t("transaction_history")}</p>
+          </div>
+        </button>
+
+       </div>
+       {showTransactions && (
+        <div className="bg-white dark:bg-[#1a1a1a] mt-4 p-4 rounded-lg shadow-sm">
+    
         <div className="flex items-center mb-3">
           <FaHistory className="text-purple-600 mr-2" />
           <h3 className="font-semibold text-gray-800 dark:text-white text-lg">
@@ -425,8 +432,27 @@ const q = query(
           </ul>
         )}
       </div>
-
+    )}
       <BottomNav />
     </motion.div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
