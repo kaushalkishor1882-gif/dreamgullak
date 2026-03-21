@@ -21,7 +21,7 @@ export default function HomePage() {
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-800 to-indigo-900">
       {/* Removed the different-color box */}
       <div className="text-center flex flex-col items-center">
-        
+
         {/* White Ganesha Image */}
         <div className="relative mb-6">
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[400px] h-[100px] bg-black/30 blur-[80px] rounded-full opacity-40"></div>

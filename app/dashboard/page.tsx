@@ -90,7 +90,7 @@ export default function DashboardPage() {
   }, [goals]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-800 to-purple-700 text-white p-6 relative">
+      <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-indigo-800 to-purple-700 text-white p-6 pb-24 relative">
       <h1 className="text-4xl font-bold mb-4">📊 Your Dashboard</h1>
       <p className="mb-6 text-lg">Track all your DreamGullak goals</p>
 

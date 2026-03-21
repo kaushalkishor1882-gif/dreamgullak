@@ -24,8 +24,14 @@ const transporter =
       })
     : null;
 
+
 // ✅ Send email to user
-export async function sendUserEmail(to: string, message: string, subject = "Withdrawal Request Update", html?: string) {
+export async function sendUserEmail(
+  to: string,
+  message: string,
+  subject = "Withdrawal Request Update",
+  html?: string
+) {
   try {
     if (!transporter) {
       console.log("⚠️ Email not sent: transporter not configured");
@@ -33,7 +39,8 @@ export async function sendUserEmail(to: string, message: string, subject = "With
     }
 
     await transporter.sendMail({
-      from: EMAIL_USER,
+      // ⭐ UPDATED LINE (professional sender name)
+      from: `DreamGullak Payments <${EMAIL_USER}>`,
       to,
       subject,
       text: html ? undefined : message,
@@ -45,6 +52,7 @@ export async function sendUserEmail(to: string, message: string, subject = "With
     console.error("❌ Error sending user email:", error);
   }
 }
+
 
 // ✅ Send notification to admin with Approve/Reject links
 export async function sendAdminNotification(
@@ -58,7 +66,7 @@ export async function sendAdminNotification(
       return;
     }
 
-    // ✅ Construct links using BASE_URL
+    // Construct approve/reject links
     const approveLink = `${BASE_URL}/api/admin/withdraw/approve?withdrawalId=${withdrawalId}&token=${SECRET_TOKEN}`;
     const rejectLink = `${BASE_URL}/api/admin/withdraw/reject?withdrawalId=${withdrawalId}&token=${SECRET_TOKEN}`;
 
@@ -72,7 +80,8 @@ export async function sendAdminNotification(
     `;
 
     await transporter.sendMail({
-      from: EMAIL_USER,
+      // ⭐ UPDATED LINE HERE ALSO
+      from: `DreamGullak Payments <${EMAIL_USER}>`,
       to: ADMIN_EMAIL,
       subject: `New Withdrawal Request from ${userEmail}`,
       html: htmlMessage,

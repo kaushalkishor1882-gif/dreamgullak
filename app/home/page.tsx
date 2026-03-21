@@ -28,7 +28,7 @@ export default function HomePage() {
       await signOut(auth); // logs user out of Firebase
       localStorage.clear();
       sessionStorage.clear();
-      router.replace("/login"); // use replace to block "Back" navigation
+      router.replace("/login"); // block back navigation
     } catch (error) {
       console.error("Logout failed:", error);
       alert("Failed to logout. Try again!");
@@ -37,7 +37,7 @@ export default function HomePage() {
 
   return (
     <motion.main
-      className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-100 text-center p-6"
+      className="min-h-screen flex flex-col items-center bg-gradient-to-br from-yellow-50 to-orange-100 text-center p-6 pb-24"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -54,37 +54,39 @@ export default function HomePage() {
       <h1 className="text-3xl md:text-4xl font-bold text-amber-700 mb-4">
         🪙 Welcome to DreamGullak!
       </h1>
+
       <p className="text-gray-700 text-lg mb-10">
         Manage your savings, track your goals, and grow your dreams!
       </p>
 
       {/* 📂 Buttons Section */}
-      <div className="flex flex-col gap-4 w-full max-w-xs">
+      <div className="flex flex-col gap-4 items-center">
+
         <Link href="/create-goal">
-          <button className="bg-purple-600 text-white font-semibold p-3 rounded-xl hover:bg-purple-700 transition">
+          <button className="w-56 bg-purple-600 text-white font-semibold py-3 rounded-xl hover:bg-purple-700 transition">
             🟣 Create a Goal
           </button>
         </Link>
 
         <Link href="/dashboard">
-          <button className="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-indigo-700 transition">
+          <button className="w-56 bg-indigo-600 text-white font-semibold py-3 rounded-xl hover:bg-indigo-700 transition">
             🟣 View Dashboard
           </button>
         </Link>
 
         <Link href="/add-money">
-          <button className="bg-yellow-500 text-white font-semibold py-3 px-6 rounded-xl hover:bg-yellow-600 transition">
+          <button className="w-56 bg-yellow-500 text-white font-semibold py-3 rounded-xl hover:bg-yellow-600 transition">
             💰 Add Money
           </button>
         </Link>
 
-        {/* 🚪 Logout Button */}
         <button
           onClick={handleLogout}
-          className="bg-sky-400 text-white font-semibold py-3 rounded-xl shadow-md hover:bg-sky-500 transition"
+          className="w-56 bg-sky-400 text-white font-semibold py-3 rounded-xl hover:bg-sky-500 transition"
         >
           🚪 Logout
         </button>
+
       </div>
     </motion.main>
   );
